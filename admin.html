@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Pengurusan Program IPGKBA</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
+    .container { max-width: 800px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    h2 { color: #1a252c; margin-bottom: 15px; }
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 4px; }
+    input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+    button { background: #007bff; color: white; padding: 10px 18px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 13px; }
+    th { background: #f8f9fa; }
+    .badge-active { background: #28a745; color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px; }
+    .badge-inactive { background: #6c757d; color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>Pengurusan Program IPGKBA</h2>
+
+    <!-- Form to Add Program -->
+    <div style="background: #fafafa; padding: 15px; border-radius: 8px; margin-bottom: 25px;">
+      <h3 style="font-size: 16px; margin-bottom: 10px;">Tambah Program Baharu</h3>
+      <div class="form-group">
+        <label>Nama Program</label>
+        <input type="text" id="progName" placeholder="e.g. Majlis Sanjungan Budi" />
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <div class="form-group" style="flex:1;">
+          <label>Tarikh</label>
+          <input type="date" id="progDate" />
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>Lokasi</label>
+          <input type="text" id="progLoc" placeholder="e.g. Dewan Utama" />
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>Passcode Pengimbas</label>
+          <input type="text" id="progPass" placeholder="e.g. MSB2026" />
+        </div>
+      </div>
+      <button onclick="addProgram()">+ Simpan Program</button>
+      <span id="adminMsg" style="margin-left: 10px; font-size: 13px; font-weight: bold;"></span>
+    </div>
+
+    <!-- List of Programs -->
+    <h3>Senarai Program</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Nama Program</th>
+          <th>Tarikh</th>
+          <th>Lokasi</th>
+          <th>Passcode</th>
+          <th>Status</th>
+          <th>Tindakan</th>
+        </tr>
+      </thead>
+      <tbody id="programTableBody">
+        <tr><td colspan="6">Memuatkan data program...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRb1T_R8qOKf1RDEbJVfQo_3-CcIX8wvKhy0PtkkKH06f9YAHDlhoGNK05JeH-DFYm/exec";
+
+    function loadPrograms() {
+      fetch(`${GOOGLE_SCRIPT_URL}?action=getPrograms`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            let tbody = document.getElementById("programTableBody");
+            tbody.innerHTML = data.programs.map(p => `
+              <tr>
+                <td><b>${p.name}</b></td>
+                <td>${p.date}</td>
+                <td>${p.location}</td>
+                <td><code>${p.passcode}</code></td>
+                <td>
+                  ${p.isActive ? '<span class="badge-active">AKTIF</span>' : '<span class="badge-inactive">TIDAK AKTIF</span>'}
+                </td>
+                <td>
+                  ${!p.isActive ? `<button onclick="setActive('${p.id}')" style="padding: 4px 8px; font-size: 11px;">Aktifkan</button>` : 'Sedang Aktif'}
+                </td>
+              </tr>
+            `).join('');
+          }
+        });
+    }
+
+    function addProgram() {
+      let name = document.getElementById("progName").value.trim();
+      let date = document.getElementById("progDate").value;
+      let location = document.getElementById("progLoc").value.trim();
+      let passcode = document.getElementById("progPass").value.trim();
+      let msg = document.getElementById("adminMsg");
+
+      if (!name || !date || !location || !passcode) {
+        alert("Sila lengkapkan semua maklumat program!");
+        return;
+      }
+
+      msg.innerText = "Menyimpan...";
+      fetch(`${GOOGLE_SCRIPT_URL}?action=addProgram&name=${encodeURIComponent(name)}&date=${encodeURIComponent(date)}&location=${encodeURIComponent(location)}&passcode=${encodeURIComponent(passcode)}`)
+        .then(res => res.json())
+        .then(data => {
+          msg.innerText = data.message;
+          loadPrograms();
+        });
+    }
+
+    function setActive(id) {
+      fetch(`${GOOGLE_SCRIPT_URL}?action=setActiveProgram&id=${encodeURIComponent(id)}`)
+        .then(res => res.json())
+        .then(data => {
+          loadPrograms();
+        });
+    }
+
+    loadPrograms();
+  </script>
+</body>
+</html>
